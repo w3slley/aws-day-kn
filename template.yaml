@@ -1,16 +1,54 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Unicorn Rentals - unicorn registry
+Description: >
+  sam-app
 
+  Sample SAM Template for sam-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 8048
+  
 Resources:
   UnicornBirthFunction:
-    Type: # Choose your resource type
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      # Allocate correct properties
-      
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      MemorySize: 8048  # Increase memory allocation
+      Environment:
+       Variables:
+        DYNAMODB_TABLE: !Ref UnicornTable
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Ref UnicornTable
+      Events:
+        RegisterUnicorn:
+          Type: Api 
+          Properties:
+            Path: /unicorns
+            Method: post
+  UnicornTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: unicorns
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 
-  DdbTable:
-    Type: # Choose your resource type
-    Properties:
-      # Allocate correct properties
-      
+Outputs:
+  UnicornApi:
+    Description: "API Gateway endpoint URL for Prod stage for UnicornBirthFunction"
+    Value: !Sub "https://r9gxxy833j.execute-api.us-east-1.amazonaws.com/Prod/unicorns"
