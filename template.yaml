@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Unicorn Rentals - unicorn registry
+
+Resources:
+  UnicornBirthFunction:
+    Type: # Choose your resource type
+    Properties:
+      # Allocate correct properties
+      
+
+  DdbTable:
+    Type: # Choose your resource type
+    Properties:
+      # Allocate correct properties
+      
