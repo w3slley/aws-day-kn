@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sam-app
+
+  Sample SAM Template for sam-app
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 1024
+
+Resources:
+  # API Gateway Role
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource: !GetAtt UnicornTable.Arn
+
+  UnicornApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: DynamoDB Direct API
+        paths:
+          /unicorns:
+            post:
+              produces:
+                - application/json
+              responses:
+                '200':
+                  description: Success
+              x-amazon-apigateway-integration:
+                credentials: !GetAtt ApiGatewayRole.Arn
+                type: aws
+                uri: 
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:dynamodb:action/PutItem
+                httpMethod: POST
+                requestTemplates:
+                  application/json: |
+                    {
+                      "TableName": "unicorns",
+                      "Item": {
+                        "name": {
+                          "S": "$input.path('$.Name')"
+                        },
+                        "weight": {
+                          "S": "$input.path('$.Weight')"
+                        }
+                      }
+                    }
+                responses:
+                  default:
+                    statusCode: '200'
+                    responseTemplates:
+                      application/json: '{"message": "Item added successfully"}'
+
+  UnicornTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: unicorns
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+Outputs:
+  UnicornApi:
+    Description: "API Gateway endpoint URL for Prod stage for UnicornApi"
+    Value: !Sub "https://${UnicornApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/unicorns"
